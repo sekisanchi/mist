@@ -4,6 +4,11 @@
             "app": {
                 "label": "__app__",
                 "about": "Sobre __app__",
+                "checkForUpdates": "Buscar actualización...",
+                "services": "Servicios",
+                "hide": "Ocultar __app__",
+                "hideOthers": "Ocultar otros",
+                "showAll": "Mostrar todo",
                 "quit": "Dejar __app__"
             },
             "edit": {
@@ -17,7 +22,8 @@
             },
             "view": {
                 "label": "Ver",
-                "fullscreen": "Pantalla Completa"
+                "fullscreen": "Pantalla Completa",
+                "languages": "Change language"
             },
             "accounts": {
                 "label": "Cuentas",
@@ -92,10 +98,10 @@
             "nodeConnectionTimeout": "No se pudo iniciar un nodo Ethereum!<br><small>Si <a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'>has instalado Geth</a>, utiliza este comando para ejecutarlo: <br> <code>geth --ipcpath __path__</code></small><br> <small><a href='https://github.com/ethereum/mist/issues' class='button' target='_blank'> O informa del problema </a></small>",
             "nodeBinaryNotFound": "No se ha encontrado el binario del nodo Ethereum!<br><small> <a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'> Por favor, inicie antes uno manualmente. </a> </small>",
             "nodeSyncing": "El nodo de Ethereum necesita sincronizarse, por favor espere...",
-            "nodeSyncInfo": "Descargando bloque __currentBlock__ de __highestBlock__.",
+            "nodeSyncInfo": "Descargando bloque __displayBlock__ de __highestBlock__.",
             "nodeSyncConnecting": "Buscando pares...",
             "nodeSyncProcessing": "Procesando bloques, por favor espere...",
-            "privateChainTimeout": "Omitir la búsqueda de pares"
+            "peerSearchTimeout": "Omitir la búsqueda de pares"
         },
         "popupWindows": {
             "requestAccount": {
@@ -178,7 +184,7 @@
                 "errors": {
                     "nodeNotStartedYet": "Espere unos segundos más hasta que su nodo esté completamente iniciado y vuelva a intentarlo",
                     "unknownFile": "Archivo no reconocido.",
-                    "passwordError": "Contraseña incorrecta.",
+                    "wrongPassword": "Contraseña incorrecta.",
                     "importFailed": "No se pudo importar el archivo por el error: __error__"
                 }
             }

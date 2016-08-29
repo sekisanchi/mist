@@ -1,19 +1,22 @@
 /**
 @module preloader browser
 */
-const ipc = require('electron').ipcRenderer;
+require('./include/common')('browser');
+const electron = require('electron');
+const ipc = electron.ipcRenderer;
+const shell = electron.shell;
 const mist = require('../mistAPI.js');
 require('../openExternal.js');
-const shell = require('shell');
 const BigNumber = require('bignumber.js');
 const ipcProviderWrapper = require('../ipc/ipcProviderWrapper.js');
 var Web3 = require('web3');
-const basePath = require('../setBasePath.js');
 require('../getFavicon.js');
 require('../getMetaTags.js');
 require('../openExternal.js');
+require('./include/setBasePath')('interface');
 
-basePath('interface');
+// register with window manager
+ipc.send('backendAction_setWindowId');
 
 // notifiy the tab to store the webview id
 ipc.sendToHost('setWebviewId');

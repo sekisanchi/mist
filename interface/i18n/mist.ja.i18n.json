@@ -4,6 +4,11 @@
             "app": {
                 "label": "__app__",
                 "about": "__app__ について",
+                "checkForUpdates": "アップデートの確認...",
+                "services": "サービス",
+                "hide": "__app__ を隠す",
+                "hideOthers": "ほかを隠す",
+                "showAll": "すべてを表示",
                 "quit": " __app__ を中止する"
             },
             "edit": {
@@ -17,7 +22,8 @@
             },
             "view": {
                 "label": "ビュー",
-                "fullscreen": "フルスクリーンをトグルする"
+                "fullscreen": "フルスクリーンをトグルする",
+                "languages": "Change language"
             },
             "accounts": {
                 "label": "アカウント",
@@ -90,10 +96,10 @@
             "nodeConnectionTimeout": "Ethereum nodeをスタート出来ませんでした!<br><small>もし<a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'>Geth</a>をインストールしているならば,このコマンドを使ってみてください: <br> <code>geth --ipcpath __path__</code></small><br> <small><a href='https://github.com/ethereum/mist/issues' class='button' target='_blank'>もしくは問題を報告して下さい。 </a></small>",
             "nodeBinaryNotFound": "Ethereum node バイナリーが見つかりませんでした。<br><small> <a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'> 手動でスタートして下さい。 </a> </small>",
             "nodeSyncing": "Ethereum node は同期中です...",
-            "nodeSyncInfo": "blockをダウンロードしています。 __currentBlock__ of __highestBlock__.",
+            "nodeSyncInfo": "blockをダウンロードしています。 __displayBlock__ of __highestBlock__.",
             "nodeSyncConnecting": "ピアーを探しています。...",
             "nodeSyncProcessing": "ブロックを処理しています...",
-            "privateChainTimeout": "ピアーの検索を中止しています"
+            "peerSearchTimeout": "ピアーの検索を中止しています"
         },
         "popupWindows": {
             "requestAccount": {
@@ -176,7 +182,7 @@
                 "errors": {
                     "nodeNotStartedYet": "ノードが開始して再度起動する迄もう少し待つ",
                     "unknownFile": "ファイルが認識できませんでした.",
-                    "passwordError": "passwordが間違っています",
+                    "wrongPassword": "passwordが間違っています",
                     "importFailed": "ファイルが読み込めませんでした: __error__のエラーです"
                 }
             }

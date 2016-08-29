@@ -178,7 +178,7 @@ Template['popupWindows_sendTransactionConfirmation'].events({
     @event click .cancel
     */
     'click .cancel': function(){
-        ipc.send('backendAction_unlockedAccount', 'Transaction not confirmed');
+        ipc.send('backendAction_unlockedAccountAndSentTransaction', 'Transaction not confirmed');
         ipc.send('backendAction_closePopupWindow');
     },
     /**
@@ -189,40 +189,70 @@ Template['popupWindows_sendTransactionConfirmation'].events({
    'submit form': function(e, template){
         e.preventDefault();
         
-        var pw = template.find('input[type="password"]').value,
+        var data = Session.get('data'),
+            pw = template.find('input[type="password"]').value,
             gas = web3.fromDecimal(TemplateVar.get('providedGas'));
+
+        // check if account is about to send to itself
+        if (data.to && data.from == data.to.toLowerCase()) {
+            GlobalNotification.warning({
+                content: TAPi18n.__('mist.popupWindows.sendTransactionConfirmation.errors.sameAccount'),
+                duration: 5
+            });
+
+            return false;
+        }
 
         console.log('Choosen Gas: ', gas, TemplateVar.get('providedGas'));
 
         if(!gas || !_.isFinite(gas))
             return;
+        else
+            data.gas = gas;
 
         TemplateVar.set('unlocking', true);
-        web3.personal.unlockAccount(Session.get('data').from, pw || '', 2, function(e, res){
+
+        // unlock and send transaction!
+        web3.personal.unlockAccountAndSendTransaction(data, pw || '', function(e, res){
             pw = null;
             TemplateVar.set(template, 'unlocking', false);
 
             if(!e && res) {
-                ipc.send('backendAction_unlockedAccount', null, gas);
+                ipc.send('backendAction_unlockedAccountAndSentTransaction', null, res);
 
             } else {
                 Tracker.afterFlush(function(){
                     template.find('input[type="password"]').value = '';
                     template.$('input[type="password"]').focus();
                 });
-
-                if(e.message.indexOf('CONNECTION ERROR') !== -1) {
+                if(e.message.indexOf('Unable to connect to socket: timeout') !== -1) {
                     GlobalNotification.warning({
                         content: TAPi18n.__('mist.popupWindows.sendTransactionConfirmation.errors.connectionTimeout'),
-                        duration: 3
+                        duration: 5
                     });
-                } else {
+                } else if(e.message.indexOf('could not decrypt key with given passphrase') !== -1) {
                     GlobalNotification.warning({
                         content: TAPi18n.__('mist.popupWindows.sendTransactionConfirmation.errors.wrongPassword'),
                         duration: 3
+                    });
+                } else if(e.message.indexOf('multiple keys match address') !== -1) {
+                    GlobalNotification.warning({
+                        content: TAPi18n.__('mist.popupWindows.sendTransactionConfirmation.errors.multipleKeysMatchAddress'),
+                        duration: 10
+                    });
+                } else if(e.message.indexOf('Insufficient funds for gas * price + value') !== -1) {
+                    GlobalNotification.warning({
+                        content: TAPi18n.__('mist.popupWindows.sendTransactionConfirmation.errors.insufficientFundsForGas'),
+                        duration: 5
+                    });
+                } else {
+                    GlobalNotification.warning({
+                        content: e.message,
+                        duration: 5
                     });
                 }
             }
         });
    } 
 });
+

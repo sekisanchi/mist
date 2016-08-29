@@ -4,6 +4,11 @@
             "app": {
                 "label": "__app__",
                 "about": "关于__app__",
+                "checkForUpdates": "检测更新...",
+                "services": "服务",
+                "hide": "隐藏 __app__",
+                "hideOthers": "隐藏 其它",
+                "showAll": "显示 全部",
                 "quit": "退出__app__"
             },
             "edit": {
@@ -17,7 +22,8 @@
             },
             "view": {
                 "label": "视图",
-                "fullscreen": "全屏切换"
+                "fullscreen": "全屏切换",
+                "languages": "Change language"
             },
             "accounts": {
                 "label": "账户",
@@ -92,10 +98,10 @@
             "nodeConnectionTimeout": "无法开启以太坊节点！<br><small>如果你已经<a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'>安装Geth</a>，使用此命令运行： <br> <code>geth --ipcpath __path__</code></small><br> <small><a href='https://github.com/ethereum/mist/issues' class='button' target='_blank'> 或者上报此问题 </a></small>",
             "nodeBinaryNotFound": "找不到以太坊节点安装文件！<br><small> <a href='https://www.ethereum.org/cli#geth' class='button' target='_blank'> 请事先手动开启一个节点 </a> </small>",
             "nodeSyncing": "需要同步以太坊节点，请等待……",
-            "nodeSyncInfo": "正在下载第__currentBlock__块，共__highestBlock__。",
+            "nodeSyncInfo": "正在下载第__displayBlock__块，共__highestBlock__。",
             "nodeSyncConnecting": "正在查找节点……",
             "nodeSyncProcessing": "正在处理区块，请等待……",
-            "privateChainTimeout": "跳过节点搜索"
+            "peerSearchTimeout": "跳过节点搜索"
         },
         "popupWindows": {
             "requestAccount": {
@@ -178,7 +184,7 @@
                 "errors": {
                     "nodeNotStartedYet": "请等待片刻直到你的节点完全启动再重新尝试一次",
                     "unknownFile": "文件无法识别。",
-                    "passwordError": "密码错误。",
+                    "wrongPassword": "密码错误。",
                     "importFailed": "无法导入该文件，错误：__error__"
                 }
             }

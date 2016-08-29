@@ -1,7 +1,7 @@
 {
     "app": {
         "loading": "Loading...",
-        "offline": "Can't connect are you offline?",
+        "offline": "Can't connect, are you offline?",
         "logginIn": "Logging in..."
     },
     "error": {
@@ -11,7 +11,7 @@
         "ok": "OK",
         "cancel": "Cancel",
         "save": "Save",
-        "edit": "edit",
+        "edit": "Edit",
         "send": "Send",
         "next": "Next",
         "previous": "Previous",
@@ -19,7 +19,9 @@
         "skip": "Skip",
         "sending": "Sending...",
         "create": "Create",
-        "tryToReconnect": "Try to reconnect"
+        "tryToReconnect": "Try to reconnect",
+        "stayAnonymous": "Stay anonymous",
+        "authorize": "Authorize"
     },
     "commonWords": {
         "you": "You",

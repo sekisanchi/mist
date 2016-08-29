@@ -2,39 +2,44 @@
 @module preloader MistUI
 */
 
-
-const ipc = require('electron').ipcRenderer;
-const syncMinimongo = require('../syncMinimongo.js');
-const remote = require('remote');
-const Menu = remote.require('menu');
-const MenuItem = remote.require('menu-item');
+require('./include/common')('mist');
+const electron = require('electron');
+const ipc = electron.ipcRenderer;
+const remote = electron.remote;
+const Menu = remote.Menu;
+const MenuItem = remote.MenuItem;
 const i18n = require('../i18n.js');
 const mist = require('../mistAPI.js');
 const BigNumber = require('bignumber.js');
 const Web3 = require('web3');
 const ipcProviderWrapper = require('../ipc/ipcProviderWrapper.js');
 const web3Admin = require('../web3Admin.js');
-const basePath = require('../setBasePath.js');
 
-basePath('interface');
+require('./include/setBasePath')('interface');
 
+// register with window manager
+ipc.send('backendAction_setWindowId');
 
 // disable pinch zoom
-require('web-frame').setZoomLevelLimits(1, 1);
+electron.webFrame.setZoomLevelLimits(1, 1);
 
 // make variables globally accessable
 window.BigNumber = BigNumber;
 window.web3 = new Web3(new Web3.providers.IpcProvider('', ipcProviderWrapper));
+
 // add admin later
 setTimeout(function(){
     web3Admin.extend(window.web3);
 }, 1000);
 
-window.dirname = __dirname;
 window.mist = mist();
-window.syncMinimongo = syncMinimongo;
 window.ipc = ipc;
-window.platform = process.platform;
+
+
+// remove require and modules, when node-integration is on
+delete window.module;
+delete window.require;
+
 
 
 // prevent overwriting the Dapps Web3
@@ -46,14 +51,13 @@ delete window.Web3;
 // ipc.send('setLanguage', navigator.language.substr(0,2));
 
 
-// A message will be send to a webview/window
+// A message will be sent to a webview/window
 ipc.on('mistUI_windowMessage', function(e, type, id, error, value) {
-
-    if(type === 'requestAccount' && !error) {
+    if((type === 'requestAccount') || (type === 'connectAccount') && !error) {
         Tabs.update({webviewId: id}, {$addToSet: {
             'permissions.accounts': value
-        }})
-    }
+        }});
+    } 
 });
 
 

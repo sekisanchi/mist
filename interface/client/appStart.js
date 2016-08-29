@@ -4,53 +4,61 @@
 if(location.hash)
     return;
 
-
-// set browser as default tab
-if(!LocalStore.get('selectedTab'))
-    LocalStore.set('selectedTab', 'browser');
-
 /**
 The init function of Mist
 
 @method mistInit
 */
 mistInit = function(){
+    console.info('Initialise Mist');
 
+    Tabs.onceSynced.then(function() {
+        if (0 <= location.search.indexOf('reset-tabs')) {
+            console.info('Resetting UI tabs');
+            
+            Tabs.remove({});
+        }
 
-    Meteor.setTimeout(function() {
         if(!Tabs.findOne('browser')) {
+            console.debug('Insert tabs');
+
             Tabs.insert({
                 _id: 'browser',
-                url: 'about:blank',
+                url: 'https://ethereum.org',
                 position: 0
             });
-            
-            Tabs.insert({
-                url: 'http://ethereum-dapp-wallet.meteor.com',
-                position: 1,
-                permissions: {
-                    accounts: web3.eth.accounts
-                }
-            });
         }
-    }, 1500);
 
-    EthAccounts.init();
-    EthBlocks.init();
+        Tabs.upsert({_id: 'wallet'}, {
+            url: 'https://wallet.ethereum.org',
+            position: 1,
+            permissions: {
+                admin: true
+            }
+        });
+
+        // Sets browser as default tab if:
+        // 1) there's no record of selected tab
+        // 2) data is corrupted (no saved tab matches localstore)
+        if(!LocalStore.get('selectedTab') || !Tabs.findOne(LocalStore.get('selectedTab'))){
+            LocalStore.set('selectedTab', 'wallet');
+        }
+    });
 };
 
 
 Meteor.startup(function(){
-    // check that it is not syncing before
-    web3.eth.getSyncing(function(e, sync) {
-        if(e || !sync)
-            mistInit();
-    });
+    console.info('Meteor starting up...');
 
+    EthAccounts.init();
+    EthBlocks.init();
 
+    mistInit();
+
+    console.debug('Setting language');
 
     // SET default language
-    if(Cookie.get('TAPi18next')) {
+    if(Cookie.get('TAPi18next')) {        
         TAPi18n.setLanguage(Cookie.get('TAPi18next'));
     } else {
         var userLang = navigator.language || navigator.userLanguage,

@@ -11,6 +11,7 @@ The browserBar template
 @constructor
 */
 
+
 Template['layout_browserBar'].onRendered(function(){
     var template = this;
 });
@@ -25,24 +26,19 @@ Template['layout_browserBar'].helpers({
     'breadcrumb': function(){
         if(!this || !this.url)
             return;
-
-        var pattern  = /([^\:]*)\:\/\/([^\/]*)\/([^\?\.]*)/
-        var search = this.url.match(pattern);
-
-        if(!search)
-            return;
-
-        var urlObject = {
-            url: search[0],
-            protocol: search[1],
-            domain: search[2].split("."),
-            folders: search[3].split("/"),
+        try {
+            var url = new URL(this.url);
         }
-
-        var breadcrumb = "<span>" + urlObject.domain.join(".") + " </span> ▸ " + urlObject.folders.join(" ▸ ");
-
+        catch(e){
+            return;
+        }
+        var pathname = _.reject(url.pathname.replace(/\/$/g, '').split("/"), function(el) {
+            return el == '';
+        });
+        var breadcrumb = _.flatten(["<span>" + url.host + " </span>", pathname]).join(" ▸ ");
         return new Spacebars.SafeString(breadcrumb);
     },
+
     /**
     Returns the current dapp
 
@@ -141,28 +137,34 @@ Template['layout_browserBar'].events({
         Tabs.remove(tabId);
         LocalStore.set('selectedTab', 'browser');
     },
-    /*
-    Show the app bar
+    /**
+    Show connect account popup
 
-    @event click app-bar > button, click .app-bar > form
+    @event click .app-bar > button.accounts'
     */
-    'click .app-bar > button, click .app-bar > form': function(e, template){
-        // prevent the slide in, when the url is clicked
-        if($(e.target).hasClass('url-input'))
-            return;
+    'click .app-bar > button.accounts': function(e, template) {
+        mist.requestAccount(function(e, addresses){
+            var tabId;
 
-        template.$('.app-bar').toggleClass('show-bar');
+            mist.syncMinimongo.frontendSync(Tabs);
+            
+            tabId = LocalStore.get('selectedTab');
+
+            // set new permissions
+            Tabs.onceSynced.then(function(){
+                Tabs.update(tabId, {$set: {
+                    'permissions.accounts': addresses
+                }});
+            });
+        });
     },
-    /*
-    Hide the app bar
-
-    @event mouseleave .app-bar
+    /* 
+    Hide the app bar on input blur
+    
+    @event blur 
     */
-    'mouseleave .app-bar': function(e, template){
-        var timeoutId = setTimeout(function(){
-            template.$('.app-bar').removeClass('show-bar');
-        }, 1000);
-        TemplateVar.set('timeoutId', timeoutId);
+    'blur .app-bar > form.url .url-input': function(e, template) {
+        template.$('.app-bar').removeClass('show-bar');
     },
     /*
     Stop hiding the app bar
@@ -173,25 +175,12 @@ Template['layout_browserBar'].events({
         clearTimeout(TemplateVar.get('timeoutId'));
     },
     /*
-    Show the sections
-
-    @event click button.accounts, click button.dapp-info, click form.url
-    */
-    'click button.accounts, click button.dapp-info, click form.url': function(e, template){
-        var className = $(e.currentTarget).attr('class');
-
-        if(TemplateVar.get('browserBarTab') !== className)
-            template.$('.app-bar').addClass('show-bar');
-
-        TemplateVar.set('browserBarTab', className);
-    },
-    /*
     Focus the input
 
     @event click form.url
     */
     'click form.url': function(e, template){
-        template.$('.url-input').focus();
+        template.$('.url-input').select();
     },
     /*
     Send the domain
@@ -200,8 +189,10 @@ Template['layout_browserBar'].events({
     */
     'submit': function(e, template){     
         var tabs = Tabs.find().fetch(),
-            url = Helpers.formatUrl(template.find('input').value);
+            url = Helpers.formatUrl(template.$('.url-input')[0].value);
 
+        // remove focus from url input
+        template.$('.url-input').blur();
 
         // look in tabs
         var foundTab = _.find(tabs, function(tab){
@@ -217,15 +208,11 @@ Template['layout_browserBar'].events({
         else
             foundTab = 'browser';
 
-
         // update current tab url
         Tabs.update(foundTab, {$set: {
             url: url,
             redirect: url
         }});
         LocalStore.set('selectedTab', foundTab);
-
-        // hide the app-bar
-        template.$('.app-bar').removeClass('show-bar');
     }
 });

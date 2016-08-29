@@ -1,3 +1,5 @@
+"use strict";
+
 var _ = require("underscore");
 var gulp = require('gulp');
 var exec = require('child_process').exec;
@@ -7,9 +9,14 @@ var packager = require('electron-packager');
 var spawn = require('child_process').spawn;
 var merge = require('merge-stream');
 var rename = require("gulp-rename");
+var download = require('gulp-download-stream');
+var tap = require("gulp-tap");
+const shell = require('shelljs');
+const mocha = require('gulp-spawn-mocha');
+// const zip = require('gulp-zip');
 // var zip = require('gulp-zip');
 // var zip = require('gulp-jszip');
-var EasyZip = require('easy-zip').EasyZip;
+// var EasyZip = require('easy-zip').EasyZip;
 var minimist = require('minimist');
 var fs = require('fs');
 var rcedit = require('rcedit');
@@ -34,8 +41,16 @@ var type = 'mist';
 var filenameLowercase = 'mist';
 var filenameUppercase = 'Mist';
 var applicationName = 'Mist'; 
+var electronVersion = '1.2.5';
+var gethVersion = '1.4.10';
+var nodeUrls = {
+    'darwin-x64': 'https://github.com/ethereum/go-ethereum/releases/download/v1.4.10/geth-OSX-20160716155225-1.4.10-5f55d95.zip',
+    'linux-x64': 'https://github.com/ethereum/go-ethereum/releases/download/v1.4.10/geth-Linux64-20160716160600-1.4.10-5f55d95.tar.bz2',
+    'win32-x64': 'https://github.com/ethereum/go-ethereum/releases/download/v1.4.10/Geth-Win64-20160716155900-1.4.10-5f55d95.zip',
+    'linux-ia32': 'https://bintray.com/karalabe/ethereum/download_file?file_path=geth-1.4.10-stable-5f55d95-linux-386.tar.bz2',
+    'win32-ia32': 'https://bintray.com/karalabe/ethereum/download_file?file_path=geth-1.4.10-stable-5f55d95-windows-4.0-386.exe.zip'
+};
 
-var electronVersion = '0.37.2';
 var osVersions = [];
 var packJson = require('./package.json');
 var version = packJson.version;
@@ -69,7 +84,6 @@ if(_.contains(options.platform, 'all')) {
         'win32-x64'
     ];
 }
-console.log('Bundling platforms: ', osVersions);
 
 
 // Helpers
@@ -113,7 +127,137 @@ gulp.task('clean:dist', function (cb) {
   ], cb);
 });
 
-gulp.task('copy-files', ['clean:dist'], function() {
+// DOWNLOAD NODES
+
+gulp.task('clean:nodes', function (cb) {
+  return del([
+    './nodes/geth/',
+  ], cb);
+});
+
+
+gulp.task('downloadNodes', ['clean:nodes'], function() {
+    let toDownload = [];
+
+    _.each(nodeUrls, function(url, osArch) {
+        let ext = (0 <= osArch.indexOf('linux') ? '.tar.bz2' : '.zip');
+
+        // donwload nodes
+        if (osArch.indexOf(options.platform) !== -1 || options.platform == 'all') {
+            toDownload.push({
+                file: `geth-${gethVersion}_${osArch}_${ext}`,
+                url: url,
+            });
+        }
+    });
+
+    return download(toDownload)
+        .pipe(gulp.dest('./nodes/geth/'));
+});
+
+
+
+gulp.task('unzipNodes', ['downloadNodes'], function(done) {
+    let nodeZips = fs.readdirSync('./nodes/geth');
+
+    var streams = [];
+
+    for (let zipFileName of nodeZips) {
+        let match = zipFileName.match(/_(\w+\-\w+)_/);
+        if (!match) {
+            continue;
+        }
+
+        let osArch = match[1];
+
+        let ret;
+
+        shell.mkdir('-p', `./nodes/geth/${osArch}`);
+
+        if (0 <= osArch.indexOf('linux')) {            
+            ret = shell.exec(`tar -xf ./nodes/geth/${zipFileName} -C ./nodes/geth/${osArch}`);
+
+        } else {
+            ret = shell.exec(`unzip -o ./nodes/geth/${zipFileName} -d ./nodes/geth/${osArch}`);
+        }
+
+        if (0 !== ret.code) {
+            console.error('Error unzipping ' + zipFileName);
+            console.log(ret.stdout);
+            console.error(ret.stderr);
+            return done(ret.stderr);
+        }
+    }
+
+    done();
+});
+
+
+
+gulp.task('renameNodes', ['unzipNodes'], function(done) {
+    var streams = [];
+
+    for (let osArch in nodeUrls) {
+        let file;
+        try {
+            file = fs.readdirSync('./nodes/geth/' + osArch).pop();
+        } catch (err) {
+            console.warn(`Skipping ${osArch} node: ${err.message}`);
+            continue;
+        }
+
+        const finalName = (0 <= osArch.indexOf('win32') ? 'geth.exe' : 'geth');
+
+        const originalPath = `./nodes/geth/${osArch}/${file}`,
+            finalPath = `./nodes/geth/${osArch}/${finalName}`;
+
+        let ret = shell.mv(originalPath, finalPath);
+
+        if (0 !== ret.code) {
+            console.error(`Error renaming ${originalPath}`);
+
+            return done(ret.stderr);
+        }
+
+        ret = shell.exec(`chmod +x ${finalPath}`);
+
+        if (0 !== ret.code) {
+            console.error(`Error setting executable permission: ${finalPath}`);
+
+            return done(ret.stderr);
+        }
+    }
+
+    return done();
+});
+
+
+
+
+// CHECK FOR NODES
+
+
+var nodeUpdateNeeded = false;
+gulp.task('checkNodes', function(cb) {
+    return gulp.src('./nodes/geth/*.{zip,tar.bz2}', { read: false })
+        .pipe(tap(function(file, t) {
+            nodeUpdateNeeded = 
+                nodeUpdateNeeded || (0 > file.path.indexOf(gethVersion));
+        }))
+    .pipe(gulp.dest('./nodes/geth/'));
+});
+
+
+// BUNLDE PROCESS
+
+gulp.task('copy-files', ['checkNodes', 'clean:dist'], function() {
+
+    // check if nodes are there
+    if(nodeUpdateNeeded){
+        console.error('YOUR NODES NEED TO BE UPDATED run $ gulp update-nodes');
+        throw new Error('YOUR NODES NEED TO BE UPDATED run $ gulp update-nodes');
+    }
+
     return gulp.src([
         './tests/**/*.*',
         './modules/**/*.*',
@@ -124,17 +268,18 @@ gulp.task('copy-files', ['clean:dist'], function() {
         '!./interface/**/*.*',
         '!./geth',
         '!./geth.exe',
-        '!./main.js',
         '!./Wallet-README.txt'
         ], { base: './' })
         .pipe(gulp.dest('./dist_'+ type +'/app'));
 });
 
-gulp.task('switch-production', ['clean:dist'], function() {
-    return gulp.src(['./main.js'])
-        .pipe(replace('global.production = false;', 'global.production = true;'))
-        .pipe(replace('global.mode = (argv.mode ? argv.mode : \'mist\');', 'global.mode = (argv.mode ? argv.mode : \''+ type +'\');'))
-        .pipe(gulp.dest('./dist_'+ type +'/app'));
+gulp.task('switch-production', ['clean:dist', 'copy-files'], function(cb) {
+    fs.writeFileSync(__dirname+'/dist_'+ type +'/app/config.json', JSON.stringify({
+        production: true,
+        mode: type,
+    }));
+
+    cb();
 });
 
 
@@ -164,7 +309,7 @@ gulp.task('bundling-interface', ['clean:dist', 'copy-files'], function(cb) {
         } else {
             console.log('Pulling https://github.com/ethereum/meteor-dapp-wallet/tree/'+ options.walletSource +' "'+ options.walletSource +'" branch...');
             exec('cd interface/ && meteor-build-client ../dist_'+ type +'/app/interface/ -p "" &&'+
-                 'cd ../dist_'+ type +'/ && git clone https://github.com/ethereum/meteor-dapp-wallet.git && cd meteor-dapp-wallet/app && meteor-build-client ../../app/interface/wallet -p "" && cd ../../ && rm -rf meteor-dapp-wallet', function (err, stdout, stderr) {
+                 'cd ../dist_'+ type +'/ && git clone --depth 1 https://github.com/ethereum/meteor-dapp-wallet.git && cd meteor-dapp-wallet/app && meteor-build-client ../../app/interface/wallet -p "" && cd ../../ && rm -rf meteor-dapp-wallet', function (err, stdout, stderr) {
                 console.log(stdout);
                 console.log(stderr);
 
@@ -185,6 +330,8 @@ gulp.task('copy-i18n', ['copy-files', 'bundling-interface'], function() {
 });
 
 gulp.task('create-binaries', ['copy-i18n'], function(cb) {
+    console.log('Bundling platforms: ', osVersions);
+
     packager({
         dir: './dist_'+ type +'/app/',
         out: './dist_'+ type +'/',
@@ -221,13 +368,13 @@ gulp.task('create-binaries', ['copy-i18n'], function(cb) {
     });
 });
 
+// FILE RENAMING
 
 gulp.task('change-files', ['create-binaries'], function() {
     var streams = [];
 
     osVersions.map(function(os){
-        var stream,
-            path = './dist_'+ type +'/'+ filenameUppercase +'-'+ os;
+        var path = './dist_'+ type +'/'+ filenameUppercase +'-'+ os;
 
         // change version file
         streams.push(gulp.src([
@@ -359,15 +506,11 @@ gulp.task('getChecksums', [], function(done) {
 
         var path = createNewFileName(os) + '.zip';
 
-        // spit out shasum and md5
+        // spit out sha256 checksums
         var fileName = path.replace('./dist_'+ type +'/', '');
-        var sha = spawn('shasum', [path]);
+        var sha = spawn('shasum', ['-a','256',path]);
         sha.stdout.on('data', function(data){
-            console.log('SHASUM '+ fileName +': '+ data.toString().replace(path, ''));
-        });
-        var md5 = spawn('md5', [path]);
-        md5.stdout.on('data', function(data){
-            console.log('MD5 '+ fileName +': '+ data.toString().replace('MD5 ('+ path +') = ', ''));
+            console.log('SHA256 '+ fileName +': '+ data.toString().replace(path, ''));
         });
 
 
@@ -389,10 +532,15 @@ gulp.task('taskQueue', [
     'create-binaries',
     'change-files',
     //'cleanup-files',
-    'rename-folders',
-    // 'zip'
+    'rename-folders'
+    // 'zip',
 ]);
 
+// DOWNLOAD nodes
+gulp.task('update-nodes', [
+    'renameNodes'
+]);
+gulp.task('download-nodes', ['update-nodes']);
 
 // MIST task
 gulp.task('mist', [
@@ -416,4 +564,20 @@ gulp.task('wallet-checksums', [
     'getChecksums'
 ]);
 
+
+
+gulp.task('test-wallet', function() {
+    return gulp.src([
+        './test/wallet/*.test.js'
+    ])
+    .pipe(mocha({
+        timeout: 60000,
+        ui: 'exports',
+        reporter: 'spec'
+    }));
+});
+
+
+
 gulp.task('default', ['mist']);
+

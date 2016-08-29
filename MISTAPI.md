@@ -45,9 +45,9 @@ else
 
 Returns the current platform, mist is running on:
 
-- `darwin` // Mac OSX
-- `win32` // Windows
-- `linux`
+- `darwin` (Mac OSX)
+- `win32` (Windows)
+- `linux` (Linux)
 
 
 ***
@@ -169,13 +169,13 @@ None
 
 ### mist.sounds
 
-Provides a list of sounds
+Provides a list of sounds.
 
 ***
 
 ### mist.sounds.bip()
 
-Makes a bip counds
+Makes a bip sound.
 
 #### Parameters
 
